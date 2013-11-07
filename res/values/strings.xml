@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<resources>
+    <string name="app_name">AndroidLineChart</string>
+    <color name="gray">#b4b3b3</color>
+    <color name="white">#ffffff</color>
+</resources>
