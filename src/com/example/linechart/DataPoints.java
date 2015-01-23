@@ -3,14 +3,14 @@ package com.example.linechart;
 public class DataPoints
 {
   private String _info;
-  private int _point;
+  private float _point;
 
   public String getInfo()
   {
     return _info;
   }
 
-  public int getPoint()
+  public float getPoint()
   {
     return _point;
   }

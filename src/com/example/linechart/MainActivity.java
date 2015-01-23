@@ -3,11 +3,14 @@ package com.example.linechart;
 import java.util.ArrayList;
 import java.util.Random;
 
+import com.example.linechart.LineChartView.OnDataPointMarkedListener;
+
 import android.os.Bundle;
 import android.app.Activity;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Paint.Cap;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -16,12 +19,14 @@ import android.view.Menu;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.EditText;
+import android.widget.TextView;
 
 public class MainActivity extends Activity {
 
 	private String TAG = "MainLineChart";
 	LineChartView lcw;
 	EditText editText1;
+	TextView tv3;
 	int count = 30;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -29,7 +34,9 @@ public class MainActivity extends Activity {
 		setContentView(R.layout.activity_main);
 		lcw = (LineChartView) findViewById(R.id.lineChartView1);
 		lcw.setOnClickListener(lcw_Click);
+		lcw.setOnDataPointMarkedListener(DataPointMarked);
 		editText1 = (EditText) findViewById(R.id.editText1);
+		tv3 = (TextView) findViewById(R.id.textView3);
 		editText1.addTextChangedListener(editText1_tw);
 		createLines(count);
 	}
@@ -74,20 +81,34 @@ public class MainActivity extends Activity {
 		}
     	
     };
+    
+    private OnDataPointMarkedListener DataPointMarked = new OnDataPointMarkedListener() {
+
+		@Override
+		public void onDataPointsMarked(ArrayList<MarkedData> value) {
+			for (MarkedData md : value) {
+				tv3.setText("Marked value: " + md.MarkedValues.get(0) + " from " + md.line.getName());
+			}
+		}
+    	
+    };
 	
 	private void createLines(int numberOfData) {
 		Line line = new Line();
-		Paint p = new Paint();
+		line.setName("TS" + System.currentTimeMillis());
+		Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
 		p.setColor(Color.BLUE);
+		p.setStyle(Paint.Style.STROKE);
+		p.setStrokeCap(Cap.ROUND);
 		p.setStrokeWidth(Dip(2));
-		p.setAntiAlias(true);
 		line.setColor(p);
 		Random r = new Random();
 		ArrayList<DataPoints> points = new ArrayList<DataPoints>();
 		for (int i = 0; i < numberOfData; i++) {
 			DataPoints dp = new DataPoints();
 			dp.setInfo("bla");
-			dp.setPoint((int)Math.round(Math.cbrt((double)i +1)* (10 * (Math.sin((double)i +1) + 1) ) ));
+			
+			dp.setPoint((int)Math.round(Math.cbrt((double)i + new Random().nextInt(10))* (10 * (Math.sin((double)i +1) + new Random().nextInt((int)Math.round(i * 12.7D + 10))) ) ));
 			points.add(dp);
 		}
 		line.setPoints(points);
