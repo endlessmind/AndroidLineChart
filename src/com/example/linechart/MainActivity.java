@@ -18,8 +18,11 @@ import android.util.TypedValue;
 import android.view.Menu;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.CompoundButton.OnCheckedChangeListener;
 
 public class MainActivity extends Activity {
 
@@ -27,6 +30,7 @@ public class MainActivity extends Activity {
 	LineChartView lcw;
 	EditText editText1;
 	TextView tv3;
+	CheckBox cb1;
 	int count = 30;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -38,6 +42,8 @@ public class MainActivity extends Activity {
 		editText1 = (EditText) findViewById(R.id.editText1);
 		tv3 = (TextView) findViewById(R.id.textView3);
 		editText1.addTextChangedListener(editText1_tw);
+		cb1 = (CheckBox) findViewById(R.id.checkBox1);
+		cb1.setOnCheckedChangeListener(CheckChange);
 		createLines(count);
 	}
 
@@ -78,6 +84,19 @@ public class MainActivity extends Activity {
 		@Override
 		public void onClick(View v) {
 			createLines(count);
+		}
+    	
+    };
+    
+    private OnCheckedChangeListener CheckChange = new OnCheckedChangeListener() {
+
+		@Override
+		public void onCheckedChanged(CompoundButton arg0, boolean value) {
+			if (value)
+				lcw.addShadow();
+			else
+				lcw.removeShadow();
+			
 		}
     	
     };

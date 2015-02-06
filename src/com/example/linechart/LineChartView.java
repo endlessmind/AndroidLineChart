@@ -4,6 +4,8 @@ import java.util.ArrayList;
 
 import android.content.Context;
 import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.graphics.Bitmap.Config;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -21,11 +23,24 @@ public class LineChartView extends View {
     Paint GridPaint = new Paint();
     Paint TouchMarkerPaint = new Paint();
     Paint markerColor = new Paint();
+    Paint dummyBitmapPaint = new Paint();
+    
+    SelectionOrientation selOri = SelectionOrientation.Horizontal;
+    
+    //The layers we are going to draw
+    Bitmap lines;
+    Bitmap grid;
+    
     
 	boolean drawGrid = false;
+	boolean hasDataChanged = false;
+	boolean isTouching = false;
+	boolean hasShadow = false;
 	
 	float verticalPos = 0.0f;
-	boolean isTouching = false;
+	float secVerticalPos = 0.0f;
+	float horizontalPos = 0.0f;
+	
 	
 	private OnDataPointMarkedListener mListener;
 	
@@ -67,7 +82,8 @@ public class LineChartView extends View {
 		}
 		GridPaint.setShadowLayer(2.0f, 3.0f, 3.0f, Color.GRAY);
 		markerColor.setShadowLayer(7.0f, 1.0f, 2.0f, Color.BLACK);
-		
+		hasDataChanged = true;
+		hasShadow = true;
 		invalidate();
 	}
 
@@ -83,9 +99,33 @@ public class LineChartView extends View {
 		}
 		GridPaint.setShadowLayer(0.0f, 3.0f, 3.0f, Color.GRAY);
 		markerColor.setShadowLayer(0.0f, 1.0f, 2.0f, Color.BLACK);
-		
+		hasDataChanged = true;
+		hasShadow = false;
 		invalidate();
 	}
+	
+	/**
+	 * Set the orientation of datapoint selection
+	 * Let's you choose in what orientation you want to be able to select datapoints.
+	 * 
+	 * 
+	 * Default is horizontal
+	 * 
+	 * @param so SelectionOrientation.Horizontal or SelectionOrientation.Vertical
+	 */
+	public void setSelectionOrientation(SelectionOrientation so) {
+		selOri = so;
+	}
+	
+	/**
+	 * Gets the current orientation of datapoint selection
+	 * 
+	 * @return Returns SelectionOrientation.Horizontal or SelectionOrientation.Vertical
+	 */
+	public SelectionOrientation getSelectionOrientation() {
+		return selOri;
+	}
+	
 	
     private float Dip(int value) {
     	Resources r = getResources();
@@ -94,6 +134,7 @@ public class LineChartView extends View {
 
     }
 	
+    
 	private void DrawDataPointMarker(float CenterX, float CenterY, Canvas canvas, Paint centerColor){
 	    markerColor.setAntiAlias(true);
 	    markerColor.setStyle(Paint.Style.FILL_AND_STROKE);
@@ -103,22 +144,29 @@ public class LineChartView extends View {
 	    canvas.drawCircle(CenterX + 1.0F, CenterY + 1.0F, Dip(2), centerColor);
 	}
 	
-
-	
 	
 	/**
 	 * Get if there is a point marker at the supplied X-cordinate
 	 * 
 	 * @param line Line object cointaining the points
-	 * @param x X-cordinate
+	 * @param xDistance The calculated distance between each point on the X-axes
+	 * @param h Height of the view, with own margin added
+	 * @param highest The highest value of any given datapoint
 	 * @return Returns true of there is a marker at that x-cordinate, else false
 	 */
-	private boolean hasMarker(Line line, float xDistance) {
+	private boolean hasMarker(Line line, float xDistance, int h, float highest) {
 		
 		for (int i = 0; i< line.getPoints().size(); i++) {
-			if ((xDistance * (i)) < (verticalPos + Dip(1)) && (xDistance * (i)) > (verticalPos - Dip(1))) {
-				return true;
+			if (selOri == SelectionOrientation.Vertical) {
+				if ((xDistance * (i)) < (verticalPos + Dip(1)) && (xDistance * (i)) > (verticalPos - Dip(1))) {
+					return true;
+				}
+			} else if (selOri == SelectionOrientation.Horizontal) {
+				if ((((line.getPoints().get(i).getPoint() *h) / highest) < (horizontalPos + Dip(1))) && (((line.getPoints().get(i).getPoint() *h) / highest) > (horizontalPos - Dip(1)))) {
+					return true;
+				}
 			}
+			
 		}
 		
 		return false;
@@ -127,19 +175,26 @@ public class LineChartView extends View {
 	/**
 	 * Gets the Y-cordinates for each data point at the X-cordinate that the user is currently touching
 	 * 
-	 * 
+	 * @param l The line to get the markers from
 	 * @param xDistance Distance between each point
 	 * @param highest Highest value of any points added
 	 * @return Returns an array of floating points
 	 */
-	private ArrayList<PointF> getMarkerYPoints(Line l, float xDistance, float highest) {
+	private ArrayList<PointF> getMarkerPoints(Line l, float xDistance, float highest) {
 		ArrayList<PointF> points = new ArrayList<PointF>();
 		int h = -24 + getHeight();
 		
 			for (int i = 0; i< l.getPoints().size(); i++) {
-				if ((xDistance * (i)) < (verticalPos + Dip(1)) && (xDistance * (i)) > (verticalPos - Dip(1))) {
-					PointF p = new PointF(xDistance * (i) , (l.getPoints().get(i).getPoint() * (float)h) / (float)highest);
-					points.add(p);
+				if (selOri == SelectionOrientation.Vertical) {
+					if ((xDistance * (i)) < (verticalPos + Dip(1)) && (xDistance * (i)) > (verticalPos - Dip(1))) {
+						PointF p = new PointF(xDistance * (i) , (l.getPoints().get(i).getPoint() * (float)h) / (float)highest);
+						points.add(p);
+					}
+				} else if (selOri == SelectionOrientation.Horizontal) {
+					if (( ((l.getPoints().get(i).getPoint() *h) / highest) < (horizontalPos + Dip(1))) && (((l.getPoints().get(i).getPoint() *h) / highest) > (horizontalPos - Dip(1)))) {
+						PointF p = new PointF(xDistance * (i) , (l.getPoints().get(i).getPoint() * (float)h) / (float)highest);
+						points.add(p);
+					}
 				}
 			}
 		
@@ -211,6 +266,31 @@ public class LineChartView extends View {
 				return last;
 	}
 	
+	
+	/**
+	 * This is just simple methods so we save some lines of code.
+	 * We're just recycling the bitmaps if they aren't already.
+	 * Then we create new bitmap to redraw the gird and the lines on.
+	 */
+	
+	private void createNewGridBitmap() {
+		//Recycle the old bitmaps, and release the instance
+		if (grid != null && !grid.isRecycled()) {
+			grid.recycle(); grid = null;
+		}
+		//Create the new bitmaps
+		grid = Bitmap.createBitmap(getWidth(), getHeight(), Config.ARGB_8888);
+	}
+	
+	private void createNewLineBitmap() {
+		//Recycle the old bitmaps, and release the instance
+		if (lines != null && !lines.isRecycled()) {
+			lines.recycle(); lines = null;
+		}
+		//Create the new bitmaps
+		lines = Bitmap.createBitmap(getWidth(), getHeight(), Config.ARGB_8888);
+	}
+	
 	/**
 	 * Update the LineChart
 	 * @param lines Lines of data to be displayed
@@ -219,12 +299,32 @@ public class LineChartView extends View {
 	  public void UpdateChart(ArrayList<Line> lines, boolean grid)
 	  {
 	    Lines = lines;
+	    
+	    //We want to keep the shadow when we update the lines :)
+		if (hasShadow) {
+			if (Build.VERSION.SDK_INT >= 11) {
+				if (Lines != null)
+					for (Line l : Lines) {
+						this.setLayerType(View.LAYER_TYPE_SOFTWARE, l.getColor());
+						l.getColor().setShadowLayer(5.0f, 0.0f, 2.0f, Color.DKGRAY);
+					}
+			}
+		}
+	    
+	    
 	    drawGrid = grid;
+	    hasDataChanged = true;
 	    invalidate();
 	  }
 
-	  private void DrawGrid(float max, int datapoints, Canvas canvas)
+	  private void DrawGrid(float max, int datapoints)
 	  {
+		//We'll create a new grid bitmap-layer if needed
+		if (grid != null && !grid.isRecycled())
+			createNewGridBitmap();
+		  
+		Canvas canvas = new Canvas(grid);
+		
 	    int w = getWidth();
 	    int h = -24 + getHeight();
 	    double gridSizeH = 0;
@@ -264,6 +364,41 @@ public class LineChartView extends View {
 	    
 	  }
 	  
+	  private void DrawLines(float xDistance, ArrayList<DataPoints> Points, int h, float highest) {
+		  
+		  //We'll create a new grid bitmap-layer if needed
+		  if (lines != null && !lines.isRecycled())
+			  createNewLineBitmap();
+			  
+		  Canvas canvas = new Canvas(lines);
+		  
+		  for (Line l : Lines ) {
+			  Points = l.getPoints();
+	
+			  for (int i = 0; i < Points.size(); i++) {
+				  float StartX = 0;
+				  float StartY = 0;
+				  float StopX = 0;
+				  float StopY = 0;
+				  //We don't want the values to be null. We can't work with null as value.
+				  StartX = fixNull(xDistance * (i)); //The X-cordinate. We just move it one step forward for each point.
+				  StartY = fixNull((Points.get(i).getPoint() *h) / highest); //The Y-cordinate. Value times the height divided by the highest number (so it's to scale)
+		        			
+				  if (i < Points.size() -1) {
+					  //Again, we can't work with null as value!
+					  StopX = fixNull(xDistance * (i + 1));
+					  StopY = fixNull((Points.get(i + 1).getPoint() *h) / highest);
+				  } else {
+					  StopX = StartX;
+					  StopY = StartY;
+				  }
+		        		
+				  //Remember that in Java-canvas, point 0 is not the bottom, it's the top of the canvas		
+				  canvas.drawLine( 10 + StartX, -12 + getHeight() - StartY, 10 + StopX, -12 + getHeight() - StopY, l.getColor());
+			  }
+		  }
+	  }
+	  
 	  
 		@Override
 	    protected void onDraw(Canvas canvas) {
@@ -301,49 +436,54 @@ public class LineChartView extends View {
 	        float xDistance = (float)(w - Dip(8)) / maxPoints;
 	        
 
-	        //Draw grid, needs som fixing
-	        DrawGrid(highest, (int)maxPoints, canvas);
+	        /**
+	         * This new way of rendering the lines and the grid (as seperate layers)
+	         * let's me only redraw the touch-marker and the DataPoint markers when 
+	         * the users is touching.
+	         * 
+	         * That saves A LOT(!!) of processing power when shadow is on, or/and when the
+	         * lines has many datapoints.
+	         * 
+	         * This way, we only redraw the lines and the grid when the lines has changed
+	         */
+	        if (hasDataChanged)
+	        	DrawGrid(highest, (int)maxPoints);
+	        canvas.drawBitmap(grid, 0,0, dummyBitmapPaint);
 	        
-	        for (Line l : Lines ) {
-	        	Points = l.getPoints();
-
-	        	for (int i = 0; i < Points.size(); i++) {
-	        		float StartX = 0;
-	        		float StartY = 0;
-	        		float StopX = 0;
-	        		float StopY = 0;
-	        		//We don't want the values to be null. We can't work with null as value.
-	        		StartX = fixNull(xDistance * (i)); //The X-cordinate. We just move it one step forward for each point.
-	        		StartY = fixNull((Points.get(i).getPoint() *h) / highest); //The Y-cordinate. Value times the height divided by the highest number (so it's to scale)
-	        			
-	        		if (i < Points.size() -1) {
-	        			//Again, we can't work with null as value!
-	        			StopX = fixNull(xDistance * (i + 1));
-	        			StopY = fixNull((Points.get(i + 1).getPoint() *h) / highest);
-	        		} else {
-	        			StopX = StartX;
-	        			StopY = StartY;
-	        		}
-	        		
-	        		//Remember that in Java-canvas, point 0 is not the bottom, it's the top of the canvas		
-	        		canvas.drawLine( 10 + StartX, -12 + getHeight() - StartY, 10 + StopX, -12 + getHeight() - StopY, l.getColor());
-	        	}
-	        	
-	        	
-	        }
+	        if (hasDataChanged)
+	        	DrawLines(xDistance, Points, h, highest);
+	 	    canvas.drawBitmap(lines, 0,0, dummyBitmapPaint);
+	        
+	 	   
+	 	   if (hasDataChanged)
+	 		   hasDataChanged = false;
+	        
+	        
+	        
+	        
 	        
 	        //Time to find markers if user is touching the view
 	        if (isTouching) {
-
-	        	canvas.drawLine( 10 + verticalPos,  getHeight(), 10 + verticalPos, 0, TouchMarkerPaint);
+	        	
+	        	//horizontalPos
+	        	//Selected area to zoom into..ops, you're not suppose to know that yet ;)
+	        	//canvas.drawLine( 10 + secVerticalPos,  getHeight(), 10 + secVerticalPos, 0, TouchMarkerPaint);
+	        	
+	        	//As I've added orientation of the touch, we need to keep track of what line to draw.
+	        	if (selOri == SelectionOrientation.Vertical) {
+	        		canvas.drawLine( 10 + verticalPos,  getHeight(), 10 + verticalPos, 0, TouchMarkerPaint);
+	        	} else if (selOri == SelectionOrientation.Horizontal) {
+	        		canvas.drawLine( 10.0F,-12 + getHeight() - horizontalPos,getWidth(),-12 + getHeight() - horizontalPos,TouchMarkerPaint);
+	        	}
+	        	
+	        	
 	        	ArrayList<MarkedData> markedData = null;
 	        	for (Line l : Lines) {
-	        		if (hasMarker(l, xDistance)) { 
+	        		if (hasMarker(l, xDistance, h, highest)) { 
 	        			if (markedData == null)
 	        				markedData = new ArrayList<MarkedData>();
 	        			
-	        			
-	        			ArrayList<PointF> points = getMarkerYPoints(l, xDistance, highest);
+	        			ArrayList<PointF> points = getMarkerPoints(l, xDistance, highest);
 	        			ArrayList<Float> markedValues = new ArrayList<Float>(); //TODO: Might cause performance issue, but should not be a problem unless you've got A LOT(!) of lines.
 	        	
 	        			for (PointF fl : points) {
@@ -352,7 +492,7 @@ public class LineChartView extends View {
 	        			}
 	        			points.clear(); // Save some memory :)
 	        			
-	        			markedData.add(new MarkedData(markedValues, l)); //TODO: Same as new ArrayList<Float>() above
+	        			markedData.add(new MarkedData(markedValues, l)); //TODO: Same as new ArrayList<Float>() above (performance issue thingy)
 	        			
 	        			System.gc(); //Hint to the Garbage collector that we have some data for it to collect. Let's hope it has time to collect it :)
 	     
@@ -366,6 +506,15 @@ public class LineChartView extends View {
 	        
 }
 		
+		@Override
+		protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+			super.onSizeChanged(w, h, oldw, oldh);
+			/*
+			 *The size has changed. We'll create new bitmap-layers to match the new size 
+			 */
+			createNewGridBitmap();
+			createNewLineBitmap();
+		}
 		
 		@Override
 	    public boolean onTouchEvent(MotionEvent event) {
@@ -377,8 +526,14 @@ public class LineChartView extends View {
 			} else if (event.getAction() == MotionEvent.ACTION_DOWN || event.getAction() == MotionEvent.ACTION_MOVE) {
 				//Touching! Set the points and redraw
 				isTouching = true;
-				verticalPos = event.getX();
+				if (selOri == SelectionOrientation.Vertical)
+					verticalPos = event.getX();
+				else if (selOri == SelectionOrientation.Horizontal)
+					horizontalPos =  getHeight() - event.getY(); //We need this because in java, 0,0 on the canvas is not bottom left. It's actually top left. So we need to correct for that :)
+				
 				invalidate();
+				if (event.getPointerCount() > 1)
+					secVerticalPos = event.getX(1);
 				
 			}
 			
@@ -390,6 +545,12 @@ public class LineChartView extends View {
 		//Our own beautiful listener
 		public interface OnDataPointMarkedListener {
 			void onDataPointsMarked(ArrayList<MarkedData> data);
+		}
+		
+		//Orientations
+		public enum SelectionOrientation {
+			Horizontal,
+			Vertical
 		}
 		
 }

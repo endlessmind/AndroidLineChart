@@ -45,10 +45,11 @@
     <TextView
         android:id="@+id/textView3"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="60dp"
         android:layout_alignLeft="@+id/lineChartView1"
+        android:layout_alignRight="@+id/lineChartView1"
         android:layout_below="@+id/lineChartView1"
-        android:text="Medium Text"
+        android:text="Touch the chart"
         android:textAppearance="?android:attr/textAppearanceMedium" />
 
     <EditText
@@ -62,4 +63,11 @@
         android:inputType="number"
         android:text="30" />
 
+    <CheckBox
+        android:id="@+id/checkBox1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/editText1"
+        android:layout_alignRight="@+id/textView3"
+        android:text="Shadow" />
 </RelativeLayout>
