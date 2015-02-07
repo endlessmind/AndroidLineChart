@@ -127,7 +127,7 @@ public class MainActivity extends Activity {
 			DataPoints dp = new DataPoints();
 			dp.setInfo("bla");
 			
-			dp.setPoint((int)Math.round(Math.cbrt((double)i + new Random().nextInt(10))* (10 * (Math.sin((double)i +1) + new Random().nextInt((int)Math.round(i * 12.7D + 10))) ) ));
+			dp.setPoint((int)Math.round(Math.cbrt((double)i + new Random().nextInt(10))* (10 * (Math.tan((double)i +1) + new Random().nextInt((int)Math.round(i * 12.7D + 10))) ) ));
 			points.add(dp);
 		}
 		line.setPoints(points);
