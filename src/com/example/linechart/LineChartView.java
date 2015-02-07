@@ -44,7 +44,7 @@ public class LineChartView extends View {
 	boolean isMultiTouching = false;
 	
 	int zoomStart = 0;
-	int zoomStop = -1;
+	int zoomStop = 0;
 	private float topLineLength = 0; //Datapoint count of the line with the most datapoints.
 	private float pointsXDistance = 0f; //The distance between each point
 	
@@ -194,24 +194,30 @@ public class LineChartView extends View {
 		//First, we need to get our most right and most left touch points
 		float right = verticalPos > secVerticalPos ? verticalPos : secVerticalPos;
 		float left = verticalPos < secVerticalPos ? verticalPos : secVerticalPos;
+		int tempStart = 0;
+		int tempStop = 0;
 		
 		//Now that we've fixed that. Then it's time to find closes datapoint so we can zoom in on them
 		for (int i = 0; i < maxPoints; i++) {
 			if (left >= ((xDistance * i) + (xDistance * 0.1f)) && left <= ((xDistance * i + 1) + (xDistance * 0.1f))) {
-				zoomStart = i + 1;
+				tempStart = zoomStart + i + 1;
 			} else if (left <= ((xDistance * i) + (xDistance * 0.1f)) && left >= ((xDistance * i) - (xDistance * 0.9f))) {
-				zoomStart = i;
+				tempStart = zoomStart + i;
 			}
 			
+			
 			if (right >= ((xDistance * i) - (xDistance * 0.1f)) && right <= ((xDistance * i) + (xDistance * 0.9f)) ) {
-				zoomStop = i;
+				tempStop = zoomStart + i;
 			} else if (right > ((xDistance * i) + (xDistance * 0.9f)) && right < ((xDistance * (i + 1) - (xDistance * 0.1f))) ) {
-				zoomStop = i + 1;
+				tempStop = zoomStart + i + 1;
 			}
 		}
+		
+		zoomStart = tempStart;
+		zoomStop = tempStop;
 		isZoomed = true;
 		hasDataChanged = true;
-		
+		secVerticalPos = -1;
 
 	}
 	
@@ -345,6 +351,7 @@ public class LineChartView extends View {
 	  {
 	    Lines = lines;
 	    topLineLength = 0;
+
 	    //We want to keep the shadow when we update the lines :)
 		if (hasShadow) {
 			if (Build.VERSION.SDK_INT >= 11) {
@@ -359,6 +366,9 @@ public class LineChartView extends View {
 	    
 	    drawGrid = grid;
 	    hasDataChanged = true;
+	    zoomStart = 0;
+	    zoomStop = 0;
+	    isZoomed = false;
 	    invalidate();
 	  }
 
@@ -488,7 +498,6 @@ public class LineChartView extends View {
 	        
 	        //This calculates the x-distans between the datapoints.
 	        pointsXDistance = (float)(w - Dip(8)) / (isZoomed ? (zoomStop - zoomStart) : topLineLength);
-	        
 
 	        /**
 	         * This new way of rendering the lines and the grid (as seperate layers)
@@ -632,6 +641,9 @@ public class LineChartView extends View {
 					isTouching = false;
 					isZoomed = false;
 					hasDataChanged = true;
+					secVerticalPos = -1;
+				    zoomStart = 0;
+				    zoomStop = 0;
 					LineChartView.this.invalidate();
 
 		            return true;
