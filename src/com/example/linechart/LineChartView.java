@@ -163,7 +163,7 @@ public class LineChartView extends View {
 	    markerColor.setColor(Color.BLACK);
 		
 	//    canvas.drawCircle(CenterX + 1.0F, CenterY + 1.0F, Dip(4), markerColor);
-	    canvas.drawCircle(CenterX + 1.0F, CenterY + 1.0F, Dip(3), centerColor);
+	    canvas.drawCircle((CenterX + 1.0F)  + pointXOffset, CenterY + 1.0F, Dip(3), centerColor);
 	}
 	
 	
@@ -645,7 +645,7 @@ public class LineChartView extends View {
 	    					int scrollDirection = SCROLL_START_POS - ((xFirst + xSec) / 2f) > 0 ? 1 : 2; //Direction of the scroll
 	    					
 	    					if (scrollDirection == 2) { //Scroll left
-	    						if (((xFirst + xSec) / 2f) - SCROLL_START_POS >= SCROLL_SPEED) {
+	    						if (((xFirst + xSec) / 2f) - SCROLL_START_POS >= SCROLL_SPEED && zoomStart > 0) {
 	    							//We added a offset to the datapoints, so we can give it a bit smoother scrolling.
 	    							//When the offset is the same as the distans between 2 points, then we "move" one datapoint in the scrolling-direction
 	    							//then zoom-area and resets the offset. 
@@ -660,7 +660,7 @@ public class LineChartView extends View {
 	    							hasDataChanged = true;
 	    						}
 	    					} else if (scrollDirection == 1) { //Scroll right
-	    						if (SCROLL_START_POS - ((xFirst + xSec) / 2f) >= SCROLL_SPEED) {
+	    						if (SCROLL_START_POS - ((xFirst + xSec) / 2f) >= SCROLL_SPEED && zoomStop < topLineLength) {
 	    							if ((pointXOffset * (-1)) > pointsXDistance) {
 		    							zoomStart++;
 		    							zoomStop++;
