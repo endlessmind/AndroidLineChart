@@ -19,6 +19,13 @@ import android.view.MotionEvent;
 import android.view.View;
 
 public class LineChartView extends View {
+	
+	public static float ACCEPTED_FINGER_DIFF = 120f;
+	public static float SCROLL_SPEED = 5f; //Lower value equals faster scroll 
+	private float SCROLL_START_POS = 0f;
+	private boolean SCROLL_ENABLE = false;
+	
+	
 	private String TAG = "LineViewChart";
 	ArrayList<Line> Lines = new ArrayList<Line>();
 	
@@ -45,8 +52,10 @@ public class LineChartView extends View {
 	
 	int zoomStart = 0;
 	int zoomStop = 0;
+	private float highestMultiplication = 20f;
 	private float topLineLength = 0; //Datapoint count of the line with the most datapoints.
 	private float pointsXDistance = 0f; //The distance between each point
+	private float pointXOffset = 0f;
 	
 	float verticalPos = 0.0f;
 	float secVerticalPos = 0.0f;
@@ -153,8 +162,8 @@ public class LineChartView extends View {
 	    markerColor.setStyle(Paint.Style.FILL_AND_STROKE);
 	    markerColor.setColor(Color.BLACK);
 		
-	    canvas.drawCircle(CenterX + 1.0F, CenterY + 1.0F, Dip(4), markerColor);
-	    canvas.drawCircle(CenterX + 1.0F, CenterY + 1.0F, Dip(2), centerColor);
+	//    canvas.drawCircle(CenterX + 1.0F, CenterY + 1.0F, Dip(4), markerColor);
+	    canvas.drawCircle(CenterX + 1.0F, CenterY + 1.0F, Dip(3), centerColor);
 	}
 	
 	
@@ -169,7 +178,7 @@ public class LineChartView extends View {
 	 */
 	private boolean hasMarker(Line line, float xDistance, int h, float highest) {
 		int forTo = isZoomed ? (line.getPoints().size() >= (zoomStop +1) ? zoomStop +1 : line.getPoints().size()) : line.getPoints().size();
-		int forStart = isZoomed ? (line.getPoints().size() >= zoomStart ? zoomStart : 0) : 0;
+		int forStart = isZoomed ? (line.getPoints().size() >= zoomStart ? (zoomStart > 0 ? zoomStart - 1 : 0) : 0) : 0;
 		
 		for (int i = forStart; i< forTo; i++) {
 			if (selOri == SelectionOrientation.Vertical) {
@@ -212,7 +221,11 @@ public class LineChartView extends View {
 				tempStop = zoomStart + i + 1;
 			}
 		}
-		
+		if (tempStop - tempStart < 3) {
+			//This is the limit to the zoom.
+			//This will produce a completely gray widget.
+			return;
+		}
 		zoomStart = tempStart;
 		zoomStop = tempStop;
 		isZoomed = true;
@@ -233,7 +246,7 @@ public class LineChartView extends View {
 		ArrayList<PointF> points = new ArrayList<PointF>();
 		int h = -24 + getHeight();
 		int forTo = isZoomed ? (l.getPoints().size() >= (zoomStop +1) ? zoomStop + 1 : l.getPoints().size()) : l.getPoints().size();
-		int forStart = isZoomed ? (l.getPoints().size() >= zoomStart ? zoomStart : 0) : 0;
+		int forStart = isZoomed ? (l.getPoints().size() >= zoomStart ? (zoomStart > 0 ? zoomStart - 1 : 0) : 0) : 0;
 		
 		for (int i = forStart; i< forTo; i++) {
 			if (selOri == SelectionOrientation.Vertical) {
@@ -369,7 +382,11 @@ public class LineChartView extends View {
 	    zoomStart = 0;
 	    zoomStop = 0;
 	    isZoomed = false;
+	    highestMultiplication = 20f;
 	    invalidate();
+        removeCallbacks(loadAnim);
+        post(loadAnim);
+	    
 	  }
 
 	  private void DrawGrid(float max, int datapoints)
@@ -384,6 +401,8 @@ public class LineChartView extends View {
 	    int h = -24 + getHeight();
 	    double gridSizeH = 0;
 	    double gridSizeW = 0;
+	    
+
 	    //Calculate gridline spacing
 	    if ((max > 60) && (max < 1200))
 	    {
@@ -394,10 +413,13 @@ public class LineChartView extends View {
 	    }
 	    
 	    if (datapoints > 10 && datapoints < 70) {
-	    	gridSizeW = w / datapoints;
+	    	gridSizeW = w / (datapoints / findTopTen(datapoints,0)) ;
 	    } else {
 	        gridSizeW = 30.0D;
 	    }
+	    
+	  //  gridSizeH = (h / (Math.round(max) / 5));
+	 //   gridSizeW = w / (datapoints / findTopTen(datapoints,0));
 	    
 	    //Vertical line
 	    for (int i = 0; i < (w / gridSizeW); i++) {
@@ -431,8 +453,8 @@ public class LineChartView extends View {
 		  for (Line l : Lines ) {
 			  Points = l.getPoints();
 			  //Indicate that last visible datapoint when zoomed
-			  int forTo = isZoomed ? (Points.size() >= zoomStop ? zoomStop : Points.size()) : Points.size();
-			  int forStart = isZoomed ? (Points.size() >= zoomStart ? zoomStart : 0) : 0;
+			  int forTo = isZoomed ? (Points.size() >= zoomStop +1 ? zoomStop + 1 : Points.size()) : Points.size();
+			  int forStart = isZoomed ? (Points.size() >= zoomStart ? (zoomStart > 0 ? zoomStart - 1 : 0) : 0) : 0;
 			  //If we're zoomed in, we only draw the visible datapoints
 			  for (int i = forStart; i < forTo; i++) {
 				  float StartX = 0;
@@ -440,13 +462,13 @@ public class LineChartView extends View {
 				  float StopX = 0;
 				  float StopY = 0;
 				  //We don't want the values to be null. We can't work with null as value.
-				  StartX = fixNull(xDistance * (isZoomed ? i - zoomStart : i)); //The X-cordinate. We just move it one step forward for each point.
-				  StartY = fixNull((Points.get(i).getPoint() *h) / highest); //The Y-cordinate. Value times the height divided by the highest number (so it's to scale)
+				  StartX = fixNull((xDistance * (isZoomed ? i - zoomStart : i)) + pointXOffset); //The X-cordinate. We just move it one step forward for each point.
+				  StartY = fixNull((Points.get(i).getPoint() *h) / (highest * highestMultiplication)); //The Y-cordinate. Value times the height divided by the highest number (so it's to scale)
 		        			
 				  if (i < Points.size() -1) {
 					  //Again, we can't work with null as value!
-					  StopX = fixNull(xDistance * ((isZoomed ? i - zoomStart : i) + 1));
-					  StopY = fixNull((Points.get(i + 1).getPoint() *h) / highest);
+					  StopX = fixNull((xDistance * ((isZoomed ? i - zoomStart : i) + 1)) + pointXOffset);
+					  StopY = fixNull((Points.get(i + 1).getPoint() *h) / (highest * highestMultiplication));
 				  } else {
 					  StopX = StartX;
 					  StopY = StartY;
@@ -464,15 +486,15 @@ public class LineChartView extends View {
 	        super.onDraw(canvas);
 	        int w = getWidth();
 	        int h = -24 + getHeight();
-	        float highest = 0;
+	        float highest = 0f;
 	        ArrayList<DataPoints> Points = null;
 	        //Find highest value. We'll scale the chart according to that.
 	        //We also want to know largets amount of points that any of the lines hold. 
 	        
 	        for (Line l: Lines) {
 	        	Points = l.getPoints();
-	    		int forTo = isZoomed ? (Points.size() >= zoomStop ? zoomStop : Points.size()) : Points.size();
-	    		int forStart = isZoomed ? (Points.size() >= zoomStart ? zoomStart : 0) : 0;
+	    		int forTo = isZoomed ? (Points.size() >= zoomStop + 2 ? zoomStop + 2 : Points.size()) : Points.size();
+	    		int forStart = isZoomed ? (Points.size() >= zoomStart ? (zoomStart > 0 ? zoomStart - 1 : 0) : 0) : 0;
 	        	
 	        	
 	        	for (int i = forStart; i < forTo; i++) {
@@ -526,7 +548,7 @@ public class LineChartView extends View {
 	        
 	        
 	        //Time to find markers if user is touching the view
-	        if (isTouching) {
+	        if (isTouching && !SCROLL_ENABLE) {
 	        	
 	        	//horizontalPos
 	        	//Selected area to zoom into..ops, you're not suppose to know that yet ;)
@@ -590,27 +612,94 @@ public class LineChartView extends View {
 				//Not touching. Let's update the state and redraw the view
 				isMultiTouching = false;
 				isTouching = false;
+				SCROLL_ENABLE = false;
+				//SCROLL_START_POS = 0f;
 				getSelectedZoom(pointsXDistance, topLineLength);
 				invalidate();
 			} else if (event.getAction() == MotionEvent.ACTION_DOWN || event.getAction() == MotionEvent.ACTION_MOVE) {
 				//Touching! Set the points and redraw
+				int pointerCount = event.getPointerCount();
+				int action = event.getAction();
+				float xFirst = event.getX(0);
+    			float xSec = 0f;
+
 				isTouching = true;
-				if (event.getPointerCount() > 1) {
-					isMultiTouching = true;
+				
+				if (pointerCount == 2) {
+					isMultiTouching =  true;
+					
+					xSec = event.getX(1);
+					//Testing out a simple scroll function. Requres two fingers that is vertially with each other.
+					//Might add a scroll-bar under the chart. Maybe as an external widget?..hm
+	    			if (action == MotionEvent.ACTION_DOWN) {
+	    				if (isScrolling(xFirst, xSec) && !SCROLL_ENABLE) {
+	    					SCROLL_START_POS = (xFirst + xSec) / 2f;
+	    					SCROLL_ENABLE = true;
+	    				}
+	    			} else if (action == MotionEvent.ACTION_MOVE) {
+	    				xFirst = event.getX();
+	    				xSec = event.getX(1);
+	    				SCROLL_ENABLE = isScrolling(xFirst, xSec);
+	    				
+	    				if (SCROLL_ENABLE) {
+	    					int scrollDirection = SCROLL_START_POS - ((xFirst + xSec) / 2f) > 0 ? 1 : 2; //Direction of the scroll
+	    					
+	    					if (scrollDirection == 2) { //Scroll left
+	    						if (((xFirst + xSec) / 2f) - SCROLL_START_POS >= SCROLL_SPEED) {
+	    							//We added a offset to the datapoints, so we can give it a bit smoother scrolling.
+	    							//When the offset is the same as the distans between 2 points, then we "move" one datapoint in the scrolling-direction
+	    							//then zoom-area and resets the offset. 
+	    							if (pointXOffset > pointsXDistance ) {
+	    								zoomStart--;
+	    								zoomStop--;
+	    								pointXOffset = 0f;
+	    							} else {
+	    								pointXOffset += 7;
+	    							}
+	    							SCROLL_START_POS = (xFirst + xSec) / 2f;
+	    							hasDataChanged = true;
+	    						}
+	    					} else if (scrollDirection == 1) { //Scroll right
+	    						if (SCROLL_START_POS - ((xFirst + xSec) / 2f) >= SCROLL_SPEED) {
+	    							if ((pointXOffset * (-1)) > pointsXDistance) {
+		    							zoomStart++;
+		    							zoomStop++;
+		    							pointXOffset = 0f;
+	    							} else {
+	    								pointXOffset -= 7;
+	    							}
+
+	    							SCROLL_START_POS = (xFirst + xSec) / 2f;
+	    							hasDataChanged = true;
+	    						}
+	    					}
+	    				}
+	    			}
+					
+	    			
 				} else {
 					isMultiTouching = false;
+					SCROLL_ENABLE = false;
+					//pointXOffset = 0f;
 				} 
 				
-				if (selOri == SelectionOrientation.Vertical || isMultiTouching) {
+				
+				
+				
+				
+				if (selOri == SelectionOrientation.Vertical || isMultiTouching && !SCROLL_ENABLE) {
 					verticalPos = event.getX();
 					if (event.getPointerCount() > 1)
 						secVerticalPos = event.getX(1);
 					else
 						secVerticalPos = -1;
-				} else if (selOri == SelectionOrientation.Horizontal && !isMultiTouching) {
+				} else if (selOri == SelectionOrientation.Horizontal && !isMultiTouching && !SCROLL_ENABLE) {
 					horizontalPos =  getHeight() - event.getY(); //We need this because in java, 0,0 on the canvas is not bottom left. It's actually top left. So we need to correct for that :)
 					secVerticalPos = -1;
 				}
+				
+
+				
 				invalidate();
 				
 				
@@ -625,12 +714,43 @@ public class LineChartView extends View {
 			
 		}
 		
+		
+		
+		/**
+		 * 
+		 * A simple load-animation that lets the chart "grow" from a straight line.
+		 * Just for testing, noticed that it's terrible for lines with like 1000+ datapoints.
+		 * 
+		 */
+		Runnable loadAnim = new Runnable() {
+
+			@Override
+			public void run() {
+				// TODO Auto-generated method stub
+					highestMultiplication -= 1f;
+					
+				if (highestMultiplication < 1.1f) { //Error correction. We don't want to get stuck in this loop.
+					highestMultiplication = 1f;
+				}
+				
+				if (highestMultiplication > 1f)
+					postDelayed(this, 25); //Restarts the runnable with a given delay, kind of like a loop that doesn't block the ui-thread.
+				
+				hasDataChanged = true; //Need to flag the data as changes for the view to actually redraw it.
+				invalidate();
+			}
+			
+		};
+		
 		   private class GestureListener extends GestureDetector.SimpleOnGestureListener {
 
 		        @Override
 		        public boolean onDown(MotionEvent e) {
+		        	
 		            return true;
 		        }
+		        
+
 		        // event when double tap occurs
 		        @Override
 		        public boolean onDoubleTap(MotionEvent e) {
@@ -650,6 +770,27 @@ public class LineChartView extends View {
 		        }
 		    }
 
+	        /**
+	         * 
+	         * Check if touches in within the accepted distance of each other
+	         * 
+	         * @param x1 X-cordinate of the first pointer
+	         * @param x2 X-cordinate of the second pointer
+	         * @return Return true or false
+	         */
+	        public boolean isScrolling(float x1, float x2) {
+   			if (x1 > x2 && ((x1 - x2) < ACCEPTED_FINGER_DIFF)) {
+   				return true;
+   			}
+   			
+   			if (x2 > x1 && ((x2 - x1) < ACCEPTED_FINGER_DIFF)) {
+   				return true;
+   			}
+	        	
+	        	
+	        	return false;
+	        }
+		   
 
 		//Our own beautiful listener
 		public interface OnDataPointMarkedListener {
