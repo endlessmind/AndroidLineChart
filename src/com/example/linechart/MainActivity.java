@@ -45,6 +45,7 @@ public class MainActivity extends Activity {
 		cb1 = (CheckBox) findViewById(R.id.checkBox1);
 		cb1.setOnCheckedChangeListener(CheckChange);
 		createLines(count);
+
 	}
 
 
@@ -106,7 +107,8 @@ public class MainActivity extends Activity {
 		@Override
 		public void onDataPointsMarked(ArrayList<MarkedData> value) {
 			for (MarkedData md : value) {
-				tv3.setText("Marked value: " + md.MarkedValues.get(0) + " from " + md.line.getName());
+				if (md.MarkedValues != null && md.MarkedValues.size() > 0)
+					tv3.setText("Marked value: " + md.MarkedValues.get(0) + " from " + md.line.getName());
 			}
 		}
     	

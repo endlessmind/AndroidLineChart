@@ -19,24 +19,27 @@ import android.view.MotionEvent;
 import android.view.View;
 
 public class LineChartView extends View {
+	private String TAG = "LineViewChart";
+	
+	private OnDataPointMarkedListener mListener;
 	
 	public static float ACCEPTED_FINGER_DIFF = 120f;
-	public static float SCROLL_SPEED = 5f; //Lower value equals faster scroll 
+	public static float SCROLL_SPEED = 10f; //Lower value equals faster scroll 
 	private float SCROLL_START_POS = 0f;
 	private boolean SCROLL_ENABLE = false;
 	
 	
-	private String TAG = "LineViewChart";
+	
 	ArrayList<Line> Lines = new ArrayList<Line>();
 	
     Paint GridPaint = new Paint();
-    Paint TouchMarkerPaint = new Paint();
     Paint markerColor = new Paint();
+    Paint TouchMarkerPaint = new Paint();
     Paint dummyBitmapPaint = new Paint();
     
     SelectionOrientation selOri = SelectionOrientation.Horizontal;
     GestureDetector gestureDetector;
-    private OnDataPointMarkedListener mListener;
+    
     
     //The layers we are going to draw
     Bitmap lines;
@@ -398,34 +401,21 @@ public class LineChartView extends View {
 		Canvas canvas = new Canvas(grid);
 		
 	    int w = getWidth();
-	    int h = -24 + getHeight();
+	    int h = getHeight() - 12;
 	    double gridSizeH = 0;
 	    double gridSizeW = 0;
 	    
 
 	    //Calculate gridline spacing
-	    if ((max > 60) && (max < 1200))
-	    {
-	    	
-	    	gridSizeH = h / (max / 5);
-	    } else {
-	        gridSizeH = 30.0D;
-	    }
 	    
-	    if (datapoints > 10 && datapoints < 70) {
-	    	gridSizeW = w / (datapoints / findTopTen(datapoints,0)) ;
-	    } else {
-	        gridSizeW = 30.0D;
-	    }
-	    
-	  //  gridSizeH = (h / (Math.round(max) / 5));
-	 //   gridSizeW = w / (datapoints / findTopTen(datapoints,0));
+	    gridSizeH = h / 10;
+	    gridSizeW = w / 11;//(datapoints / findTopTen(datapoints,0));
 	    
 	    //Vertical line
 	    for (int i = 0; i < (w / gridSizeW); i++) {
 	        float StartX = (float)gridSizeW * i;
 	        float StopX = (float)gridSizeW * i;
-	        canvas.drawLine( 10 + StartX, -12 + getHeight(), 10 + StopX, -12 + getHeight() - h, GridPaint);
+	        canvas.drawLine(StartX + 5, getHeight() -12, StopX + 5, getHeight() - h - 5, GridPaint);
 	        if (i == Math.round(w / gridSizeW)) 
 	        	break;
 	    }
@@ -434,7 +424,7 @@ public class LineChartView extends View {
 	    for (int i = 0; i < (h/ gridSizeH); i++) {
 		      float StartY = (float)gridSizeH * i;
 		      float StopY = (float)gridSizeH * i;
-		      canvas.drawLine(10.0F, -12 + getHeight() - StartY, w, -12 + getHeight() - StopY, GridPaint);
+		      canvas.drawLine(5.0F, getHeight() - StartY - 12, w - 3, getHeight() - StopY - 12, GridPaint);
 		      if ((i -10 ) == Math.round(h / gridSizeH)) 
 		    	  break;
 	    }
@@ -453,8 +443,8 @@ public class LineChartView extends View {
 		  for (Line l : Lines ) {
 			  Points = l.getPoints();
 			  //Indicate that last visible datapoint when zoomed
-			  int forTo = isZoomed ? (Points.size() >= zoomStop +1 ? zoomStop + 1 : Points.size()) : Points.size();
-			  int forStart = isZoomed ? (Points.size() >= zoomStart ? (zoomStart > 0 ? zoomStart - 1 : 0) : 0) : 0;
+			  int forTo = isZoomed ? (Points.size() >= zoomStop + 2 ? zoomStop + 2 : Points.size()) : Points.size();
+			  int forStart = isZoomed ? (Points.size() > zoomStart ? (zoomStart > 1 ? zoomStart - 2 : 0) : 0) : 0;
 			  //If we're zoomed in, we only draw the visible datapoints
 			  for (int i = forStart; i < forTo; i++) {
 				  float StartX = 0;
@@ -485,7 +475,7 @@ public class LineChartView extends View {
 	    protected void onDraw(Canvas canvas) {
 	        super.onDraw(canvas);
 	        int w = getWidth();
-	        int h = -24 + getHeight();
+	        int h = getHeight() - 12;
 	        float highest = 0f;
 	        ArrayList<DataPoints> Points = null;
 	        //Find highest value. We'll scale the chart according to that.
@@ -649,24 +639,24 @@ public class LineChartView extends View {
 	    							//We added a offset to the datapoints, so we can give it a bit smoother scrolling.
 	    							//When the offset is the same as the distans between 2 points, then we "move" one datapoint in the scrolling-direction
 	    							//then zoom-area and resets the offset. 
-	    							if (pointXOffset > pointsXDistance ) {
+	    							if (pointXOffset >= pointsXDistance || pointsXDistance < 20 ) {
 	    								zoomStart--;
 	    								zoomStop--;
 	    								pointXOffset = 0f;
 	    							} else {
-	    								pointXOffset += 7;
+	    								pointXOffset += (pointsXDistance / 2);
 	    							}
 	    							SCROLL_START_POS = (xFirst + xSec) / 2f;
 	    							hasDataChanged = true;
 	    						}
 	    					} else if (scrollDirection == 1) { //Scroll right
 	    						if (SCROLL_START_POS - ((xFirst + xSec) / 2f) >= SCROLL_SPEED && zoomStop < topLineLength) {
-	    							if ((pointXOffset * (-1)) > pointsXDistance) {
+	    							if ((pointXOffset * (-1)) >= pointsXDistance  || pointsXDistance < 20) {
 		    							zoomStart++;
 		    							zoomStop++;
 		    							pointXOffset = 0f;
 	    							} else {
-	    								pointXOffset -= 7;
+	    								pointXOffset -= (pointsXDistance / 2);
 	    							}
 
 	    							SCROLL_START_POS = (xFirst + xSec) / 2f;
@@ -728,6 +718,10 @@ public class LineChartView extends View {
 			public void run() {
 				// TODO Auto-generated method stub
 					highestMultiplication -= 1f;
+					
+					if (topLineLength > 500) {
+						highestMultiplication = 1f;
+					}
 					
 				if (highestMultiplication < 1.1f) { //Error correction. We don't want to get stuck in this loop.
 					highestMultiplication = 1f;

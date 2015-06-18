@@ -17,30 +17,10 @@
     <com.example.linechart.LineChartView
         android:id="@+id/lineChartView1"
         android:layout_width="wrap_content"
-        android:layout_height="200dp"
+        android:layout_height="300dp"
         android:layout_alignLeft="@+id/textView1"
         android:layout_below="@+id/textView1"
         android:background="@color/gray" />
-
-    <TextView
-        android:id="@+id/textView2"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignLeft="@+id/editText1"
-        android:layout_alignRight="@+id/editText1"
-        android:layout_below="@+id/editText1"
-        android:layout_marginTop="48dp"
-        android:gravity="center_horizontal"
-        android:text="Algoritm used to generate points:"
-        android:textAppearance="?android:attr/textAppearanceMedium" />
-
-    <ImageView
-        android:id="@+id/imageView1"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignLeft="@+id/textView2"
-        android:layout_below="@+id/textView2"
-        android:src="@drawable/algoritm" />
 
     <TextView
         android:id="@+id/textView3"
