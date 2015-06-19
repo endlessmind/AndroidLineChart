@@ -20,7 +20,7 @@
         android:layout_height="300dp"
         android:layout_alignLeft="@+id/textView1"
         android:layout_below="@+id/textView1"
-        android:background="@color/gray" />
+        android:background="@color/white" />
 
     <TextView
         android:id="@+id/textView3"

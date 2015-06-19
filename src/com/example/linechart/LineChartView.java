@@ -12,7 +12,6 @@ import android.graphics.Paint;
 import android.graphics.PointF;
 import android.os.Build;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.util.TypedValue;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
@@ -98,14 +97,14 @@ public class LineChartView extends View {
 	public void addShadow() {
 		if (Build.VERSION.SDK_INT >= 11) {
 			this.setLayerType(View.LAYER_TYPE_SOFTWARE, markerColor);
-			this.setLayerType(View.LAYER_TYPE_SOFTWARE, GridPaint);
+			//this.setLayerType(View.LAYER_TYPE_SOFTWARE, GridPaint);
 			if (Lines != null)
 				for (Line l : Lines) {
 					this.setLayerType(View.LAYER_TYPE_SOFTWARE, l.getColor());
 					l.getColor().setShadowLayer(5.0f, 0.0f, 2.0f, Color.DKGRAY);
 				}
 		}
-		GridPaint.setShadowLayer(2.0f, 3.0f, 3.0f, Color.GRAY);
+		//GridPaint.setShadowLayer(2.0f, 3.0f, 3.0f, Color.GRAY);
 		markerColor.setShadowLayer(7.0f, 1.0f, 2.0f, Color.BLACK);
 		hasDataChanged = true;
 		hasShadow = true;
@@ -166,7 +165,7 @@ public class LineChartView extends View {
 	    markerColor.setColor(Color.BLACK);
 		
 	//    canvas.drawCircle(CenterX + 1.0F, CenterY + 1.0F, Dip(4), markerColor);
-	    canvas.drawCircle((CenterX + 1.0F)  + pointXOffset, CenterY + 1.0F, Dip(3), centerColor);
+	    canvas.drawCircle(CenterX + pointXOffset, CenterY, Dip(4), centerColor);
 	}
 	
 	
@@ -509,7 +508,7 @@ public class LineChartView extends View {
 	        highest = rounded < highest ? highest : rounded;
 	        
 	        //This calculates the x-distans between the datapoints.
-	        pointsXDistance = (float)(w - Dip(8)) / (isZoomed ? (zoomStop - zoomStart) : topLineLength);
+	        pointsXDistance = (float)(w - Dip(10)) / (isZoomed ? (zoomStop - zoomStart) : topLineLength);
 
 	        /**
 	         * This new way of rendering the lines and the grid (as seperate layers)
@@ -565,7 +564,7 @@ public class LineChartView extends View {
 		        	
 		        			for (PointF fl : points) {
 		        				markedValues.add(convertYCordToData(fl.y,highest));
-		        				DrawDataPointMarker(10 + fl.x, -12 + getHeight() - fl.y, canvas, l.getColor());
+		        				DrawDataPointMarker(10 + fl.x,  getHeight() - fl.y - 12, canvas, l.getColor());
 		        			}
 		        			points.clear(); // Save some memory :)
 		        			
@@ -716,7 +715,6 @@ public class LineChartView extends View {
 
 			@Override
 			public void run() {
-				// TODO Auto-generated method stub
 					highestMultiplication -= 1f;
 					
 					if (topLineLength > 500) {
@@ -748,8 +746,6 @@ public class LineChartView extends View {
 		        // event when double tap occurs
 		        @Override
 		        public boolean onDoubleTap(MotionEvent e) {
-		            float x = e.getX();
-		            float y = e.getY();
 
 					isMultiTouching = false;
 					isTouching = false;
@@ -798,5 +794,3 @@ public class LineChartView extends View {
 		}
 		
 }
-
-
