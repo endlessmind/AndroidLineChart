@@ -136,7 +136,7 @@ public class MainActivity extends Activity {
 		ArrayList<Line> lines = new ArrayList<Line>();
 		lines.add(line);
 		if (lcw != null)
-		lcw.UpdateChart(lines, false);
+		lcw.UpdateChart(lines, false, false);
 		
 	}
 	
