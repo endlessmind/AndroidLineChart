@@ -519,7 +519,7 @@ public class LineChartView extends View {
 				
 			}
 			
-			Log.e(TAG, "Fisk: " + (markedData == null ? true : false));
+			
 			if (markedData != null) {
 				
 				if (mParserList != null) {
