@@ -13,9 +13,7 @@ import android.graphics.Paint;
 import android.graphics.Paint.Cap;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.util.TypedValue;
-import android.view.Menu;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.CheckBox;
@@ -26,6 +24,7 @@ import android.widget.CompoundButton.OnCheckedChangeListener;
 
 public class MainActivity extends Activity {
 
+	@SuppressWarnings("unused")
 	private String TAG = "MainLineChart";
 	LineChartView lcw;
 	EditText editText1;
@@ -123,7 +122,6 @@ public class MainActivity extends Activity {
 		p.setStrokeCap(Cap.ROUND);
 		p.setStrokeWidth(Dip(2));
 		line.setColor(p);
-		Random r = new Random();
 		ArrayList<DataPoints> points = new ArrayList<DataPoints>();
 		for (int i = 0; i < numberOfData; i++) {
 			DataPoints dp = new DataPoints();
