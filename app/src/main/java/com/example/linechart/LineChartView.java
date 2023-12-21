@@ -9,14 +9,17 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Paint.Style;
+import android.graphics.Path;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.os.Build;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
+
 
 import java.util.ArrayList;
 
@@ -51,6 +54,8 @@ public class LineChartView extends View {
     float verticalPos = 0.0f;
     float secVerticalPos = 0.0f;
     float horizontalPos = 0.0f;
+    float firstPosBegin = 0.0f;
+    float secPosBegin = 0.0f;
     @SuppressWarnings("unused")
     private String TAG = "LineViewChart";
     private OnDataPointMarkedListener mListener;
@@ -248,17 +253,21 @@ public class LineChartView extends View {
             return; //We've single-touched the screen. So, no zooming going on.
 
         //First, we need to get our most right and most left touch points
-        float right = verticalPos > secVerticalPos ? verticalPos : secVerticalPos;
-        float left = verticalPos < secVerticalPos ? verticalPos : secVerticalPos;
+        float right = Math.max(verticalPos, secVerticalPos);
+        float left = Math.min(verticalPos, secVerticalPos);
         int tempStart = 0;
         int tempStop = 0;
 
         //Now that we've fixed that. Then it's time to find closes datapoint so we can zoom in on them
         for (int i = 0; i < maxPoints; i++) {
             if (left >= ((xDistance * i) + (xDistance * 0.1f)) && left <= ((xDistance * i + 1) + (xDistance * 0.1f))) {
-                tempStart = zoomStart + i + 1;
+                //If left is bigger or equal to i-pos + 10% of the distance between points
+                //and smaller than i+1-pos + 10% -||-
+                tempStart = zoomStart + i + 1; //Then we select the next point as the start of the zoomed area
             } else if (left <= ((xDistance * i) + (xDistance * 0.1f)) && left >= ((xDistance * i) - (xDistance * 0.9f))) {
-                tempStart = zoomStart + i;
+                //If left is smaller or equal to i-pos + 10% of the distance between points
+                //but also bigger than or equal to i-pos - 90% of the distance between points
+                tempStart = zoomStart + i; //Then we select this as the start of the zoomed area
             }
 
 
@@ -278,6 +287,66 @@ public class LineChartView extends View {
         isZoomed = true;
         hasDataChanged = true;
         secVerticalPos = -1;
+
+    }
+
+    private void selectPinchZoomArea(float xDistance, float maxPoints, float x1, float x2) {
+        if (secVerticalPos == -1)
+            return; //We've single-touched the screen. So, no zooming going on.
+
+        //First, we need to get our most right and most left touch points
+        float pRight = Math.max(firstPosBegin, secPosBegin);
+        float pLeft = Math.min(firstPosBegin, secPosBegin);
+        float cRight = Math.max(x1, x2);
+        float cLeft = Math.min(x1, x2);
+
+        float pDiff = pRight - pLeft;
+        float cDiff = cRight - cLeft;
+        if (cDiff > pDiff) { //Zoooming iiin
+            int diff = (int) ( (cDiff - pDiff) / xDistance);
+            if (zoomStop == 0)
+                zoomStop = (int) topLineLength;
+
+            if (diff > 0) {
+                zoomStart = (int) (zoomStart + (diff));
+                zoomStop = (int) (zoomStop - (diff )); //TODO:This will only work for the first zoom
+                firstPosBegin = x1;
+                secPosBegin = x2;
+            }
+
+            if (zoomStart > 0 && zoomStop > 0)
+                isZoomed = true;
+            else
+                isZoomed = false;
+
+            hasDataChanged = true;
+        } else if (cDiff < pDiff) { //Zoooming oooout
+            if (zoomStop == 0)
+                zoomStop = (int) topLineLength;
+
+            int diff = (int) ( (pDiff - cDiff) / xDistance);
+
+            if (diff > 0) {
+                zoomStart = (int) (zoomStart - (diff ));
+                zoomStop = (int) (zoomStop + (diff )); //TODO:This will only work for the first zoom
+                firstPosBegin = x1;
+                secPosBegin = x2;
+            }
+            if (zoomStart > 0 && zoomStop < maxPoints)
+                isZoomed = true;
+            else
+                isZoomed = false;
+
+            hasDataChanged = true;
+        }
+        //Clamp
+        if (zoomStart < 0)
+            zoomStart = 0;
+
+        if (zoomStop > (int) topLineLength)
+            zoomStop = (int) topLineLength;
+
+
 
     }
 
@@ -535,10 +604,12 @@ public class LineChartView extends View {
         Canvas canvas = new Canvas(lines);
 
         for (Line l : Lines) {
+            Path pa = new Path();
             Points = l.getPoints();
             //Indicate that last visible datapoint when zoomed
             int forTo = isZoomed ? (Points.size() >= zoomStop + 2 ? zoomStop + 2 : Points.size()) : Points.size();
             int forStart = isZoomed ? (Points.size() > zoomStart ? (zoomStart > 1 ? zoomStart - 2 : 0) : 0) : 0;
+
             //If we're zoomed in, we only draw the visible datapoints
             for (int i = forStart; i < forTo; i++) {
                 float StartX = 0;
@@ -557,9 +628,15 @@ public class LineChartView extends View {
                     StopX = StartX;
                     StopY = StartY;
                 }
+                if (i == forStart)
+                    pa.moveTo(StartX + Dip(1), h - StartY);
+
+                pa.lineTo(StopX + Dip(1), h - StopY);
                 //Remember that in Java-canvas, point 0 is not the bottom, it's the top of the canvas
-                canvas.drawLine(StartX + Dip(1), h - StartY, StopX + Dip(1), h - StopY, l.getColor());
+                //canvas.drawLine(StartX + Dip(1), h - StartY, StopX + Dip(1), h - StopY, l.getColor());
             }
+            //pa.close();
+            canvas.drawPath(pa, l.getColor());
         }
     }
 
@@ -595,7 +672,7 @@ public class LineChartView extends View {
             return;
 
         //fix the highest value, so we're not maxing out our gird. Now we'll have a bit of space above the highest datapoint
-        int rounded = (int) round(highest, Math.round(highest / 2) + 10);
+        int rounded = (int) round(highest, Math.round(highest / 10) + 10);
         rounded += findTopTen(highest, 0);
         highest = rounded < highest ? highest : rounded;
 
@@ -624,7 +701,7 @@ public class LineChartView extends View {
         if (isTouching && !SCROLL_ENABLE) {
 
             //horizontalPos
-            //Selected area to zoom into..ops, you're not suppose to know that yet ;)
+            //Selected area to zoom into
             if (isMultiTouching)
                 canvas.drawLine(secVerticalPos, h, secVerticalPos, 0, TouchMarkerPaint);
 
@@ -711,7 +788,7 @@ public class LineChartView extends View {
             isTouching = false;
             SCROLL_ENABLE = false;
             //SCROLL_START_POS = 0f;
-            getSelectedZoom(pointsXDistance, topLineLength);
+            //getSelectedZoom(pointsXDistance, topLineLength);
             invalidate();
         } else if (event.getAction() == MotionEvent.ACTION_DOWN || event.getAction() == MotionEvent.ACTION_MOVE) {
             //Touching! Set the points and redraw
@@ -723,8 +800,12 @@ public class LineChartView extends View {
             isTouching = true;
 
             if (pointerCount == 2) {
-                isMultiTouching = true;
 
+                if (!isMultiTouching) {
+                    firstPosBegin = event.getX(0);
+                    secPosBegin = event.getX(1);
+                }
+                isMultiTouching = true;
                 xSec = event.getX(1);
                 //Testing out a simple scroll function. Requres two fingers that is vertially with each other.
                 //Might add a scroll-bar under the chart. Maybe as an external widget?..hm
@@ -737,6 +818,9 @@ public class LineChartView extends View {
                     xFirst = event.getX();
                     xSec = event.getX(1);
                     SCROLL_ENABLE = isScrolling(xFirst, xSec);
+
+                    if (!SCROLL_ENABLE)
+                        selectPinchZoomArea(pointsXDistance, topLineLength, xFirst,xSec);
 
                     if (SCROLL_ENABLE) {
                         int scrollDirection = SCROLL_START_POS - ((xFirst + xSec) / 2f) > 0 ? 1 : 2; //Direction of the scroll
@@ -751,7 +835,7 @@ public class LineChartView extends View {
                                     zoomStop--;
                                     pointXOffset = 0f;
                                 } else {
-                                    pointXOffset += (pointsXDistance / 2);
+                                    pointXOffset += verticalPos - xFirst;
                                 }
                                 SCROLL_START_POS = (xFirst + xSec) / 2f;
                                 hasDataChanged = true;
@@ -763,7 +847,7 @@ public class LineChartView extends View {
                                     zoomStop++;
                                     pointXOffset = 0f;
                                 } else {
-                                    pointXOffset -= (pointsXDistance / 2);
+                                    pointXOffset -= xFirst - verticalPos;
                                 }
 
                                 SCROLL_START_POS = (xFirst + xSec) / 2f;
@@ -780,6 +864,9 @@ public class LineChartView extends View {
             }
 
             if (selOri == SelectionOrientation.Vertical || isMultiTouching && !SCROLL_ENABLE) {
+                //Her we can insert pinch-to-zoom
+
+
                 verticalPos = event.getX();
                 if (event.getPointerCount() > 1)
                     secVerticalPos = event.getX(1);
@@ -796,7 +883,7 @@ public class LineChartView extends View {
         } else if (event.getAction() == MotionEvent.ACTION_POINTER_2_UP) {
             isMultiTouching = false;
             isTouching = false;
-            getSelectedZoom(pointsXDistance, topLineLength);
+            //getSelectedZoom(pointsXDistance, topLineLength);
             invalidate();
         }
 

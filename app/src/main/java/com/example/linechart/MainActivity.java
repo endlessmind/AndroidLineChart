@@ -146,12 +146,14 @@ public class MainActivity extends Activity {
         p.setColor(-16776961);
         p.setStrokeWidth(Dip(3));
         p.setStrokeCap(Paint.Cap.ROUND);
+        p.setStyle(Paint.Style.STROKE);
         p.setAntiAlias(true);
         line.setColor(p);
         Paint p2 = new Paint();
         p2.setColor(SupportMenu.CATEGORY_MASK);
         p2.setStrokeWidth(Dip(3));
         p2.setStrokeCap(Paint.Cap.ROUND);
+        p2.setStyle(Paint.Style.STROKE);
         p2.setAntiAlias(true);
         line2.setColor(p2);
         new Random();
@@ -173,7 +175,7 @@ public class MainActivity extends Activity {
         lines.add(line);
         lines.add(line2);
         if (this.lcw != null) {
-            this.lcw.UpdateChart(lines, false, true);
+            this.lcw.UpdateChart(lines, true, false);
         }
     }
 
