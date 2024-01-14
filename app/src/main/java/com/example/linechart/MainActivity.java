@@ -32,7 +32,7 @@ public class MainActivity extends Activity {
     Button btnToggle;
 
     TextView tv3;
-    CheckBox cb1;
+    CheckBox cb1, checkBox2;
     int count = 30;
     @SuppressWarnings("unused")
     private String TAG = "MainLineChart";
@@ -71,11 +71,15 @@ public class MainActivity extends Activity {
     private OnCheckedChangeListener CheckChange = new OnCheckedChangeListener() {
 
         @Override
-        public void onCheckedChanged(CompoundButton arg0, boolean value) {
-            if (value)
-                lcw.addShadow();
-            else
-                lcw.removeShadow();
+        public void onCheckedChanged(CompoundButton view, boolean value) {
+            if (view == cb1) {
+                if (value)
+                    lcw.addShadow();
+                else
+                    lcw.removeShadow();
+            } else if (view == checkBox2) {
+                lcw.setIndividualMax(!lcw.isIndividualMax());
+            }
 
         }
 
@@ -111,16 +115,18 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        lcw = (LineChartView) findViewById(R.id.lineChartView1);
+        lcw = findViewById(R.id.lineChartView1);
         lcw.setOnClickListener(lcw_Click);
         lcw.setOnDataPointMarkedListener(DataPointMarked);
         lcw.setOnInfoNeedParseListener(this.parse_list);
-        editText1 = (EditText) findViewById(R.id.editText1);
-        btnToggle = (Button) findViewById(R.id.btnToggle);
-        tv3 = (TextView) findViewById(R.id.textView3);
+        editText1 = findViewById(R.id.editText1);
+        btnToggle = findViewById(R.id.btnToggle);
+        tv3 = findViewById(R.id.textView3);
         editText1.addTextChangedListener(editText1_tw);
-        cb1 = (CheckBox) findViewById(R.id.checkBox1);
+        cb1 = findViewById(R.id.checkBox1);
+        checkBox2 = findViewById(R.id.checkBox2);
         cb1.setOnCheckedChangeListener(CheckChange);
+        checkBox2.setOnCheckedChangeListener(CheckChange);
         createLines(count);
         this.btnToggle.setOnClickListener(new View.OnClickListener() {
             public void onClick(View arg0) {
@@ -140,6 +146,7 @@ public class MainActivity extends Activity {
     public void createLines(int numberOfData) {
         Line line = new Line();
         Line line2 = new Line();
+        Line line3 = new Line();
         line.setName("köket");
         line2.setName("sovrummet");
         Paint p = new Paint();
@@ -156,24 +163,44 @@ public class MainActivity extends Activity {
         p2.setStyle(Paint.Style.STROKE);
         p2.setAntiAlias(true);
         line2.setColor(p2);
+        line3.setColor(p);
         new Random();
         ArrayList<DataPoints> points = new ArrayList<>();
         ArrayList<DataPoints> points2 = new ArrayList<>();
+        ArrayList<DataPoints> points3 = new ArrayList<>();
         for (int i = 0; i < numberOfData; i++) {
             DataPoints dp = new DataPoints();
             dp.setInfo("bla");
             dp.setPoint((int) Math.round(Math.cbrt(((double) i) + ((double) new Random().nextInt(10))) * 10.0d * (Math.sin(((double) i) + 1.0d) + ((double) new Random().nextInt((int) Math.round((((double) i) * 4.61d) + 4.0d))))));
             points.add(dp);
-            DataPoints dp2 = new DataPoints();
-            dp2.setInfo("bla");
-            dp2.setPoint((int) Math.round(Math.cbrt(((double) i) + ((double) new Random().nextInt(15))) * 10.0d * (Math.sin(((double) i) + 1.0d) + ((double) new Random().nextInt((int) Math.round((((double) i) * 12.7d) + 10.0d))))));
-            points2.add(dp2);
+            double r1 = new Random().nextInt(15);
+            double r2 = new Random().nextInt((int) Math.round((((double) i) * 4.83d) + 5.0d));
+            DataPoints dp3 = new DataPoints();
+            dp3.setInfo("bla");
+            dp3.setPoint((int) Math.round(Math.cbrt(((double) i) + r1) * 5.0d * (Math.sin(((double) i) + 1.0d) + r2)));
+            points3.add(dp3);
+            if (i < (numberOfData / 4)) { //Generates half the points
+                DataPoints dp2 = new DataPoints();
+                dp2.setInfo("bla");
+                dp2.setPoint((int) Math.round(Math.cbrt(((double) i) +  r1) * 5.0d * (Math.sin(((double) i) + 1.0d) + r2)));
+                points2.add(dp2);
+            } else if (i > ((numberOfData / 4) * 3)) {
+                DataPoints dp2 = new DataPoints();
+                dp2.setInfo("bla");
+                dp2.setPoint((int) Math.round(Math.cbrt(((double) i) +  r1) * 5.0d * (Math.sin(((double) i) + 1.0d) + r2)));
+                points2.add(dp2);
+            } else {
+                points2.add(new DataPoints(false));
+            }
         }
         line.setPoints(points);
         line2.setPoints(points2);
+        line3.setPoints(points3);
         ArrayList<Line> lines = new ArrayList<>();
         lines.add(line);
+        //lines.add(line3);
         lines.add(line2);
+
         if (this.lcw != null) {
             this.lcw.UpdateChart(lines, true, false);
         }

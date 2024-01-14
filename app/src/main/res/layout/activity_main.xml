@@ -18,13 +18,14 @@
     <com.example.linechart.LineChartView
         android:id="@+id/lineChartView1"
         android:layout_width="wrap_content"
-        android:layout_height="300dp"
+        android:layout_height="400dp"
         android:background="@color/white" />
 
     <TextView
         android:id="@+id/textView3"
         android:layout_width="wrap_content"
         android:layout_height="60dp"
+        android:visibility="gone"
         android:text="Touch the chart"
         android:textAppearance="?android:attr/textAppearanceMedium" />
 
@@ -36,5 +37,10 @@
     <EditText android:id="@+id/editText1" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="30" android:ems="10" android:inputType="number">
         <requestFocus/>
     </EditText>
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+        <CheckBox android:id="@+id/checkBox2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Individual scaling" android:layout_weight="1"/>
+        <Button android:id="@+id/btnRedrawNotUsed" android:layout_width="wrap_content" android:visibility="invisible" android:layout_height="wrap_content" android:text="Redraw" android:layout_weight="1"/>
+    </LinearLayout>
 
 </LinearLayout>

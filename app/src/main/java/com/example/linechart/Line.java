@@ -11,6 +11,15 @@ public class Line {
     private ArrayList<DataPoints> _points;
     private String _xUnit;
     private String _yUnit;
+    private float maxValue;
+
+    public float getMaxValue() {
+        return maxValue;
+    }
+
+    public void setMaxValue(float maxValue) {
+        this.maxValue = maxValue;
+    }
 
     public Paint getColor() {
         return _color;
