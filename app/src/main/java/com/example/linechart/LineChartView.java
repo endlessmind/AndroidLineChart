@@ -606,7 +606,13 @@ public class LineChartView extends View {
                 //Callback to the context, that holds the view, for custom text formating
                 String data = mParserList.onCustomParse(markedData);
                 //Draw the text
-                can.drawText(data, Dip(15), Dip(30), TextPaint);
+                float x = Dip(15), y = Dip(30);
+                for (String line: data.split("\n")) {
+                    can.drawText(line, x, y, TextPaint);
+                    y += TextPaint.descent() - TextPaint.ascent();
+                }
+                //can.drawText(data, Dip(15), Dip(30), TextPaint);
+
             }
         }
 
@@ -708,8 +714,13 @@ public class LineChartView extends View {
             }
 
         }
-        if (individualMax)
+        if (individualMax) {
             highest = 101;
+        } else {
+            for (Line l : Lines) {
+                l.setMaxValue(highest);
+            }
+        }
         //This is so that we don't get a ArithmeticException because we divid by zero.
         //Both in the running app, but also in the GUI-designer.
         if (highest < 1)
@@ -753,7 +764,7 @@ public class LineChartView extends View {
 
             //As I've added orientation of the touch, we need to keep track of what line to draw.
             if (selOri == SelectionOrientation.Vertical || isMultiTouching) {
-                canvas.drawLine(verticalPos, h, verticalPos, 0, TouchMarkerPaint);
+                canvas.drawLine(verticalPos + leftMargin, h, verticalPos+ leftMargin, 0, TouchMarkerPaint);
             } else if (selOri == SelectionOrientation.Horizontal && !isMultiTouching) {
                 canvas.drawLine(leftMargin, h - horizontalPos, getWidth(), h - horizontalPos, TouchMarkerPaint);
             }
@@ -928,7 +939,7 @@ public class LineChartView extends View {
             }
 
             if (selOri == SelectionOrientation.Vertical || isMultiTouching && !SCROLL_ENABLE) {
-
+                //Log.e("LineChartView2", "pointer updated");
                 verticalPos = event.getX();
                 if (event.getPointerCount() > 1)
                     secVerticalPos = event.getX(1);

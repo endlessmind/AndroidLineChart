@@ -104,7 +104,7 @@ public class MainActivity extends Activity {
                 MarkedData md = it.next();
                 if (md.MarkedValues != null && md.MarkedValues.size() > 0) {
                     //value = String.valueOf(value) + "Value:" + md.MarkedValues.get(0) + " tutte " + md.line.getName() + "\n";
-                    value = String.valueOf(value) + md.line.getName() + ":" + md.MarkedValues.get(0)+ " - ";
+                    value = String.valueOf(value) + md.line.getName() + ":" + md.MarkedValues.get(0)+ "\n";
                 }
             }
             return value;
@@ -119,6 +119,7 @@ public class MainActivity extends Activity {
         lcw.setOnClickListener(lcw_Click);
         lcw.setOnDataPointMarkedListener(DataPointMarked);
         lcw.setOnInfoNeedParseListener(this.parse_list);
+        lcw.setSelectionOrientation(LineChartView.SelectionOrientation.Vertical);
         editText1 = findViewById(R.id.editText1);
         btnToggle = findViewById(R.id.btnToggle);
         tv3 = findViewById(R.id.textView3);
@@ -149,6 +150,7 @@ public class MainActivity extends Activity {
         Line line3 = new Line();
         line.setName("köket");
         line2.setName("sovrummet");
+        line3.setName("Kamin");
         Paint p = new Paint();
         p.setColor(-16776961);
         p.setStrokeWidth(Dip(3));
@@ -198,7 +200,7 @@ public class MainActivity extends Activity {
         line3.setPoints(points3);
         ArrayList<Line> lines = new ArrayList<>();
         lines.add(line);
-        //lines.add(line3);
+        lines.add(line3);
         lines.add(line2);
 
         if (this.lcw != null) {
